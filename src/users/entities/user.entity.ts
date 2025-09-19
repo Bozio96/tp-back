@@ -2,22 +2,32 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Product } from '../../products/entities/product.entity';
 
-@Entity('brands')
-export class Brand {
+export enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+}
+
+@Entity('users')
+export class User {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
   @Column({ length: 255, unique: true, nullable: false })
-  name: string;
+  username: string;
 
-  @OneToMany(() => Product, (product) => product.brand)
-  products: Product[];
+  @Column({ length: 255, nullable: false })
+  password: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

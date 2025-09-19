@@ -6,9 +6,7 @@ import { BrandsController } from './brands.controller';
 import { BrandsService } from './brands.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Brand]),
-  ],
+  imports: [TypeOrmModule.forFeature([Brand])],
   controllers: [BrandsController],
   providers: [BrandsService],
 })

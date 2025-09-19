@@ -8,9 +8,9 @@ import { PriceChange } from './entities/price-change.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product,PriceChange]), // Le dice a TypeORM: "Voy a usar la entidad Product aquí"
+    TypeOrmModule.forFeature([Product, PriceChange]), // Le dice a TypeORM: "Voy a usar la entidad Product aquí"
   ],
-  controllers: [ProductsController],   // Los endpoints (rutas)
-  providers: [ProductsService],        //  La lógica de negocio
+  controllers: [ProductsController], // Los endpoints (rutas)
+  providers: [ProductsService], //  La lógica de negocio
 })
 export class ProductsModule {}

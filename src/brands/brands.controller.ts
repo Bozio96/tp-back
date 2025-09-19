@@ -1,5 +1,13 @@
 // src/brands/brands.controller.ts
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
 import { BrandsService } from './brands.service';
 import { Brand } from './entities/brand.entity';
 
@@ -23,7 +31,10 @@ export class BrandsController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() brand: Partial<Brand>): Promise<Brand> {
+  update(
+    @Param('id') id: string,
+    @Body() brand: Partial<Brand>,
+  ): Promise<Brand> {
     return this.brandsService.update(+id, brand);
   }
 

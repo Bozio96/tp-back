@@ -1,5 +1,10 @@
 // src/products/products.service.ts
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -11,9 +16,9 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private productsRepository: Repository<Product>,
-    
+
     @InjectRepository(PriceChange)
-    private priceChangeRepository: Repository<PriceChange>
+    private priceChangeRepository: Repository<PriceChange>,
   ) {}
 
   findAll() {
@@ -42,7 +47,8 @@ export class ProductsService {
   }): Promise<Product[]> {
     const { search, brand, category, supplier, department } = filters;
 
-    const query = this.productsRepository.createQueryBuilder('product')
+    const query = this.productsRepository
+      .createQueryBuilder('product')
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.supplier', 'supplier')
@@ -73,9 +79,13 @@ export class ProductsService {
 
   async create(product: any): Promise<Product> {
     // Validar: SKU único
-    const existingSku = await this.productsRepository.findOneBy({ sku: product.sku });
+    const existingSku = await this.productsRepository.findOneBy({
+      sku: product.sku,
+    });
     if (existingSku) {
-      throw new ConflictException(`Ya existe un producto con el SKU "${product.sku}"`);
+      throw new ConflictException(
+        `Ya existe un producto con el SKU "${product.sku}"`,
+      );
     }
 
     return this.productsRepository.save(product);
@@ -89,9 +99,13 @@ export class ProductsService {
 
     // Validar: si el SKU cambia, verificar que no esté duplicado
     if (product.sku && product.sku !== existing.sku) {
-      const duplicateSku = await this.productsRepository.findOneBy({ sku: product.sku });
+      const duplicateSku = await this.productsRepository.findOneBy({
+        sku: product.sku,
+      });
       if (duplicateSku) {
-        throw new ConflictException(`Ya existe un producto con el SKU "${product.sku}"`);
+        throw new ConflictException(
+          `Ya existe un producto con el SKU "${product.sku}"`,
+        );
       }
     }
 
@@ -102,7 +116,9 @@ export class ProductsService {
 
     const updatedProduct = await this.productsRepository.findOneBy({ id });
     if (!updatedProduct) {
-      throw new InternalServerErrorException('Error al recuperar el producto actualizado');
+      throw new InternalServerErrorException(
+        'Error al recuperar el producto actualizado',
+      );
     }
 
     //Registrar cambio de precio si hubo cambio en salePrice
@@ -127,9 +143,11 @@ export class ProductsService {
     return true;
   }
 
-  async bulkUpdate(updates: BulkUpdateProductDto[]): Promise<{ updatedCount: number }> {
-    const ids = updates.map(u => u.id);
-    
+  async bulkUpdate(
+    updates: BulkUpdateProductDto[],
+  ): Promise<{ updatedCount: number }> {
+    const ids = updates.map((u) => u.id);
+
     const products = await this.productsRepository.find({
       where: { id: In(ids) },
     });
@@ -141,7 +159,7 @@ export class ProductsService {
     const updatedProducts: Product[] = [];
 
     for (const update of updates) {
-      const product = products.find(p => p.id === update.id);
+      const product = products.find((p) => p.id === update.id);
       if (!product) continue;
 
       // Guardamos el precio anterior

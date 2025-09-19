@@ -1,5 +1,13 @@
 // src/suppliers/suppliers.controller.ts
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { Supplier } from './entities/supplier.entity';
 
@@ -23,7 +31,10 @@ export class SuppliersController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() supplier: Partial<Supplier>): Promise<Supplier> {
+  update(
+    @Param('id') id: string,
+    @Body() supplier: Partial<Supplier>,
+  ): Promise<Supplier> {
     return this.suppliersService.update(+id, supplier);
   }
 

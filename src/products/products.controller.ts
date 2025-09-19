@@ -1,5 +1,14 @@
-
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
 import { BulkUpdateProductDto } from './dto/bulk-update-product.dto';
@@ -14,25 +23,22 @@ export class ProductsController {
     return this.productsService.findOne(+id);
   }
 
-
-@Get()
-async findAllWithFilters(
-  @Query('search') search?: string,
-  @Query('brand') brand?: string,
-  @Query('category') category?: string,
-  @Query('supplier') supplier?: string,
-  @Query('department') department?: string,
-): Promise<Product[]> {
-  return this.productsService.findAllWithFilters({
-    search,
-    brand,
-    category,
-    supplier,
-    department,
-  });
-}
-
-
+  @Get()
+  async findAllWithFilters(
+    @Query('search') search?: string,
+    @Query('brand') brand?: string,
+    @Query('category') category?: string,
+    @Query('supplier') supplier?: string,
+    @Query('department') department?: string,
+  ): Promise<Product[]> {
+    return this.productsService.findAllWithFilters({
+      search,
+      brand,
+      category,
+      supplier,
+      department,
+    });
+  }
 
   // ➕ POST /api/products
   @Post()
@@ -40,13 +46,11 @@ async findAllWithFilters(
     return this.productsService.create(product);
   }
 
-  
-
   // ✏️ PUT /api/products/1
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() product: Partial<Product> // 👈 Partial porque no necesitas enviar todo
+    @Body() product: Partial<Product>, // 👈 Partial porque no necesitas enviar todo
   ): Promise<Product> {
     return this.productsService.update(+id, product);
   }
@@ -58,9 +62,9 @@ async findAllWithFilters(
     return { success: true };
   }
 
-   @Patch('bulk-update')
+  @Patch('bulk-update')
   async bulkUpdate(
-    @Body() updates: BulkUpdateProductDto[]
+    @Body() updates: BulkUpdateProductDto[],
   ): Promise<{ success: boolean; updatedCount: number }> {
     const result = await this.productsService.bulkUpdate(updates);
     return {

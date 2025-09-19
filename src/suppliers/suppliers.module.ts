@@ -5,11 +5,8 @@ import { Supplier } from './entities/supplier.entity';
 import { SuppliersController } from './suppliers.controller';
 import { SuppliersService } from './suppliers.service';
 
-
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Supplier]),
-  ],
+  imports: [TypeOrmModule.forFeature([Supplier])],
   controllers: [SuppliersController],
   providers: [SuppliersService],
 })

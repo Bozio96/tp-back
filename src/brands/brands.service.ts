@@ -1,5 +1,10 @@
 // src/brands/brands.service.ts
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Brand } from './entities/brand.entity';
@@ -25,9 +30,13 @@ export class BrandsService {
 
   async create(brand: any): Promise<Brand> {
     // Validar: no permitir nombre duplicado
-    const existing = await this.brandsRepository.findOneBy({ name: brand.name });
+    const existing = await this.brandsRepository.findOneBy({
+      name: brand.name,
+    });
     if (existing) {
-      throw new ConflictException(`Ya existe una marca con el nombre "${brand.name}"`);
+      throw new ConflictException(
+        `Ya existe una marca con el nombre "${brand.name}"`,
+      );
     }
     return this.brandsRepository.save(brand);
   }
@@ -40,9 +49,13 @@ export class BrandsService {
 
     // Validar: si el nombre cambia, verificar que no esté duplicado
     if (brand.name && brand.name !== existing.name) {
-      const duplicate = await this.brandsRepository.findOneBy({ name: brand.name });
+      const duplicate = await this.brandsRepository.findOneBy({
+        name: brand.name,
+      });
       if (duplicate) {
-        throw new ConflictException(`Ya existe una marca con el nombre "${brand.name}"`);
+        throw new ConflictException(
+          `Ya existe una marca con el nombre "${brand.name}"`,
+        );
       }
     }
 
@@ -50,7 +63,9 @@ export class BrandsService {
 
     const updatedBrand = await this.brandsRepository.findOneBy({ id });
     if (!updatedBrand) {
-      throw new InternalServerErrorException('Error al recuperar la marca actualizada');
+      throw new InternalServerErrorException(
+        'Error al recuperar la marca actualizada',
+      );
     }
 
     return updatedBrand;

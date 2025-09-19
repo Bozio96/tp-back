@@ -1,5 +1,10 @@
 // src/categories/categories.service.ts
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
@@ -25,9 +30,13 @@ export class CategoriesService {
 
   async create(category: any): Promise<Category> {
     // Validar: no permitir nombre duplicado
-    const existing = await this.categoriesRepository.findOneBy({ name: category.name });
+    const existing = await this.categoriesRepository.findOneBy({
+      name: category.name,
+    });
     if (existing) {
-      throw new ConflictException(`Ya existe una categoría con el nombre "${category.name}"`);
+      throw new ConflictException(
+        `Ya existe una categoría con el nombre "${category.name}"`,
+      );
     }
     return this.categoriesRepository.save(category);
   }
@@ -40,9 +49,13 @@ export class CategoriesService {
 
     // Validar: si el nombre cambia, verificar que no esté duplicado
     if (category.name && category.name !== existing.name) {
-      const duplicate = await this.categoriesRepository.findOneBy({ name: category.name });
+      const duplicate = await this.categoriesRepository.findOneBy({
+        name: category.name,
+      });
       if (duplicate) {
-        throw new ConflictException(`Ya existe una categoría con el nombre "${category.name}"`);
+        throw new ConflictException(
+          `Ya existe una categoría con el nombre "${category.name}"`,
+        );
       }
     }
 
@@ -50,7 +63,9 @@ export class CategoriesService {
 
     const updatedCategory = await this.categoriesRepository.findOneBy({ id });
     if (!updatedCategory) {
-      throw new InternalServerErrorException('Error al recuperar la categoría actualizada');
+      throw new InternalServerErrorException(
+        'Error al recuperar la categoría actualizada',
+      );
     }
 
     return updatedCategory;
