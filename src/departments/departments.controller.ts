@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { Department } from './entities/department.entity';
+import { CreateDepartmentDto } from './dto/create-department.dto';
+import { UpdateDepartmentDto } from './dto/update-department.dto';
 
 @Controller('api/departments')
 export class DepartmentsController {
@@ -26,16 +28,16 @@ export class DepartmentsController {
   }
 
   @Post()
-  create(@Body() department: Department): Promise<Department> {
-    return this.departmentsService.create(department);
+  create(@Body() createDepartmentDto: CreateDepartmentDto): Promise<Department> {
+    return this.departmentsService.create(createDepartmentDto);
   }
 
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() department: Partial<Department>,
+    @Body() updateDepartmentDto: UpdateDepartmentDto,
   ): Promise<Department> {
-    return this.departmentsService.update(+id, department);
+    return this.departmentsService.update(+id, updateDepartmentDto);
   }
 
   @Delete(':id')

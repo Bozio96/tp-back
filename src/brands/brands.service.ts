@@ -8,6 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Brand } from './entities/brand.entity';
+import { CreateBrandDto } from './dto/create-brand.dto';
+import { UpdateBrandDto } from './dto/update-brand.dto';
 
 @Injectable()
 export class BrandsService {
@@ -28,50 +30,49 @@ export class BrandsService {
     return brand;
   }
 
-  async create(brand: any): Promise<Brand> {
-    // Validar: no permitir nombre duplicado
+  async create(createBrandDto: CreateBrandDto): Promise<Brand> {
     const existing = await this.brandsRepository.findOneBy({
-      name: brand.name,
+      name: createBrandDto.name,
     });
     if (existing) {
       throw new ConflictException(
-        `Ya existe una marca con el nombre "${brand.name}"`,
+        `Ya existe una marca con el nombre "${createBrandDto.name}"`,
       );
     }
+
+    const brand = this.brandsRepository.create(createBrandDto);
     return this.brandsRepository.save(brand);
   }
 
-  async update(id: number, brand: any): Promise<Brand> {
+  async update(id: number, updateBrandDto: UpdateBrandDto): Promise<Brand> {
     const existing = await this.brandsRepository.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException(`Marca con ID ${id} no encontrada`);
     }
 
-    // Validar: si el nombre cambia, verificar que no esté duplicado
-    if (brand.name && brand.name !== existing.name) {
+    if (updateBrandDto.name && updateBrandDto.name !== existing.name) {
       const duplicate = await this.brandsRepository.findOneBy({
-        name: brand.name,
+        name: updateBrandDto.name,
       });
       if (duplicate) {
         throw new ConflictException(
-          `Ya existe una marca con el nombre "${brand.name}"`,
+          `Ya existe una marca con el nombre "${updateBrandDto.name}"`,
         );
       }
     }
 
-    await this.brandsRepository.update(id, brand);
-
-    const updatedBrand = await this.brandsRepository.findOneBy({ id });
-    if (!updatedBrand) {
+    const updatedBrand = this.brandsRepository.merge(existing, updateBrandDto);
+    try {
+      return await this.brandsRepository.save(updatedBrand);
+    } catch (error) {
       throw new InternalServerErrorException(
         'Error al recuperar la marca actualizada',
       );
     }
-
-    return updatedBrand;
   }
 
-  remove(id: number) {
-    return this.brandsRepository.delete(id);
+  async remove(id: number) {
+    const brand = await this.findOne(id);
+    return this.brandsRepository.remove(brand);
   }
 }

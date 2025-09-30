@@ -8,6 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Supplier } from './entities/supplier.entity';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
+import { UpdateSupplierDto } from './dto/update-supplier.dto';
 
 @Injectable()
 export class SuppliersService {
@@ -28,50 +30,55 @@ export class SuppliersService {
     return supplier;
   }
 
-  async create(supplier: any): Promise<Supplier> {
-    // Validar: no permitir nombre duplicado
+  async create(createSupplierDto: CreateSupplierDto): Promise<Supplier> {
     const existing = await this.suppliersRepository.findOneBy({
-      name: supplier.name,
+      name: createSupplierDto.name,
     });
     if (existing) {
       throw new ConflictException(
-        `Ya existe un proveedor con el nombre "${supplier.name}"`,
+        `Ya existe un proveedor con el nombre "${createSupplierDto.name}"`,
       );
     }
+
+    const supplier = this.suppliersRepository.create(createSupplierDto);
     return this.suppliersRepository.save(supplier);
   }
 
-  async update(id: number, supplier: any): Promise<Supplier> {
+  async update(
+    id: number,
+    updateSupplierDto: UpdateSupplierDto,
+  ): Promise<Supplier> {
     const existing = await this.suppliersRepository.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException(`Proveedor con ID ${id} no encontrado`);
     }
 
-    // Validar: si el nombre cambia, verificar que no esté duplicado
-    if (supplier.name && supplier.name !== existing.name) {
+    if (updateSupplierDto.name && updateSupplierDto.name !== existing.name) {
       const duplicate = await this.suppliersRepository.findOneBy({
-        name: supplier.name,
+        name: updateSupplierDto.name,
       });
       if (duplicate) {
         throw new ConflictException(
-          `Ya existe un proveedor con el nombre "${supplier.name}"`,
+          `Ya existe un proveedor con el nombre "${updateSupplierDto.name}"`,
         );
       }
     }
 
-    await this.suppliersRepository.update(id, supplier);
-
-    const updatedSupplier = await this.suppliersRepository.findOneBy({ id });
-    if (!updatedSupplier) {
+    const updatedSupplier = this.suppliersRepository.merge(
+      existing,
+      updateSupplierDto,
+    );
+    try {
+      return await this.suppliersRepository.save(updatedSupplier);
+    } catch (error) {
       throw new InternalServerErrorException(
         'Error al recuperar el proveedor actualizado',
       );
     }
-
-    return updatedSupplier;
   }
 
-  remove(id: number) {
-    return this.suppliersRepository.delete(id);
+  async remove(id: number) {
+    const supplier = await this.findOne(id);
+    return this.suppliersRepository.remove(supplier);
   }
 }

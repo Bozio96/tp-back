@@ -11,13 +11,14 @@ import {
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { BulkUpdateProductDto } from './dto/bulk-update-product.dto';
 
-@Controller('api/products') // 👈 Todos los endpoints empezarán con /api/products
+@Controller('api/products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // 🟢 GET /api/products/:id
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Product> {
     return this.productsService.findOne(+id);
@@ -40,22 +41,19 @@ export class ProductsController {
     });
   }
 
-  // ➕ POST /api/products
   @Post()
-  create(@Body() product: Product): Promise<Product> {
-    return this.productsService.create(product);
+  create(@Body() createProductDto: CreateProductDto): Promise<Product> {
+    return this.productsService.create(createProductDto);
   }
 
-  // ✏️ PUT /api/products/1
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() product: Partial<Product>, // 👈 Partial porque no necesitas enviar todo
+    @Body() updateProductDto: UpdateProductDto,
   ): Promise<Product> {
-    return this.productsService.update(+id, product);
+    return this.productsService.update(+id, updateProductDto);
   }
 
-  // 🗑️ DELETE /api/products/1
   @Delete(':id')
   async remove(@Param('id') id: string) {
     await this.productsService.remove(+id);

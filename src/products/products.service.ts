@@ -9,6 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { BulkUpdateProductDto } from './dto/bulk-update-product.dto';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { PriceChange } from './entities/price-change.entity';
 
 @Injectable()
@@ -77,56 +79,67 @@ export class ProductsService {
     return await query.getMany();
   }
 
-  async create(product: any): Promise<Product> {
-    // Validar: SKU único
+  async create(createProductDto: CreateProductDto): Promise<Product> {
     const existingSku = await this.productsRepository.findOneBy({
-      sku: product.sku,
+      sku: createProductDto.sku,
     });
     if (existingSku) {
       throw new ConflictException(
-        `Ya existe un producto con el SKU "${product.sku}"`,
+        `Ya existe un producto con el SKU "${createProductDto.sku}"`,
       );
     }
 
+    const product = this.productsRepository.create(
+      createProductDto as unknown as Product,
+    );
     return this.productsRepository.save(product);
   }
 
-  async update(id: number, product: any): Promise<Product> {
-    const existing = await this.productsRepository.findOneBy({ id });
+  async update(id: number, updateProductDto: UpdateProductDto): Promise<Product> {
+    const existing = await this.productsRepository.findOne({
+      where: { id },
+      relations: ['brand', 'category', 'supplier', 'department'],
+    });
     if (!existing) {
       throw new NotFoundException(`Producto con ID ${id} no encontrado`);
     }
 
-    // Validar: si el SKU cambia, verificar que no esté duplicado
-    if (product.sku && product.sku !== existing.sku) {
+    if (updateProductDto.sku && updateProductDto.sku !== existing.sku) {
       const duplicateSku = await this.productsRepository.findOneBy({
-        sku: product.sku,
+        sku: updateProductDto.sku,
       });
       if (duplicateSku) {
         throw new ConflictException(
-          `Ya existe un producto con el SKU "${product.sku}"`,
+          `Ya existe un producto con el SKU "${updateProductDto.sku}"`,
         );
       }
     }
 
-    // Guardamos el precio anterior antes de actualizar
     const oldSalePrice = existing.salePrice;
 
-    await this.productsRepository.update(id, product);
+    await this.productsRepository.update(
+      id,
+      updateProductDto as unknown as Product,
+    );
 
-    const updatedProduct = await this.productsRepository.findOneBy({ id });
+    const updatedProduct = await this.productsRepository.findOne({
+      where: { id },
+      relations: ['brand', 'category', 'supplier', 'department'],
+    });
     if (!updatedProduct) {
       throw new InternalServerErrorException(
         'Error al recuperar el producto actualizado',
       );
     }
 
-    //Registrar cambio de precio si hubo cambio en salePrice
-    if (product.salePrice !== undefined && oldSalePrice !== product.salePrice) {
+    if (
+      updateProductDto.salePrice !== undefined &&
+      oldSalePrice !== updateProductDto.salePrice
+    ) {
       const priceChange = new PriceChange();
       priceChange.product = updatedProduct;
       priceChange.oldPrice = oldSalePrice;
-      priceChange.newPrice = product.salePrice;
+      priceChange.newPrice = updateProductDto.salePrice;
 
       await this.priceChangeRepository.save(priceChange);
     }
@@ -153,7 +166,7 @@ export class ProductsService {
     });
 
     if (products.length === 0) {
-      throw new NotFoundException('Ningún producto encontrado para actualizar');
+      throw new NotFoundException('Ningun producto encontrado para actualizar');
     }
 
     const updatedProducts: Product[] = [];
@@ -162,7 +175,6 @@ export class ProductsService {
       const product = products.find((p) => p.id === update.id);
       if (!product) continue;
 
-      // Guardamos el precio anterior
       const oldSalePrice = product.salePrice;
 
       if (update.costBase !== undefined) {
@@ -178,7 +190,6 @@ export class ProductsService {
 
       updatedProducts.push(product);
 
-      //Registrar cambio de precio si hubo cambio
       if (update.salePrice !== undefined && oldSalePrice !== update.salePrice) {
         const priceChange = new PriceChange();
         priceChange.product = product;

@@ -8,6 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Department } from './entities/department.entity';
+import { CreateDepartmentDto } from './dto/create-department.dto';
+import { UpdateDepartmentDto } from './dto/update-department.dto';
 
 @Injectable()
 export class DepartmentsService {
@@ -28,52 +30,55 @@ export class DepartmentsService {
     return department;
   }
 
-  async create(department: any): Promise<Department> {
-    // Validar: no permitir nombre duplicado
+  async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
     const existing = await this.departmentsRepository.findOneBy({
-      name: department.name,
+      name: createDepartmentDto.name,
     });
     if (existing) {
       throw new ConflictException(
-        `Ya existe un departamento con el nombre "${department.name}"`,
+        `Ya existe un departamento con el nombre "${createDepartmentDto.name}"`,
       );
     }
+
+    const department = this.departmentsRepository.create(createDepartmentDto);
     return this.departmentsRepository.save(department);
   }
 
-  async update(id: number, department: any): Promise<Department> {
+  async update(
+    id: number,
+    updateDepartmentDto: UpdateDepartmentDto,
+  ): Promise<Department> {
     const existing = await this.departmentsRepository.findOneBy({ id });
     if (!existing) {
       throw new NotFoundException(`Departamento con ID ${id} no encontrado`);
     }
 
-    // Validar: si el nombre cambia, verificar que no esté duplicado
-    if (department.name && department.name !== existing.name) {
+    if (updateDepartmentDto.name && updateDepartmentDto.name !== existing.name) {
       const duplicate = await this.departmentsRepository.findOneBy({
-        name: department.name,
+        name: updateDepartmentDto.name,
       });
       if (duplicate) {
         throw new ConflictException(
-          `Ya existe un departamento con el nombre "${department.name}"`,
+          `Ya existe un departamento con el nombre "${updateDepartmentDto.name}"`,
         );
       }
     }
 
-    await this.departmentsRepository.update(id, department);
-
-    const updatedDepartment = await this.departmentsRepository.findOneBy({
-      id,
-    });
-    if (!updatedDepartment) {
+    const updatedDepartment = this.departmentsRepository.merge(
+      existing,
+      updateDepartmentDto,
+    );
+    try {
+      return await this.departmentsRepository.save(updatedDepartment);
+    } catch (error) {
       throw new InternalServerErrorException(
         'Error al recuperar el departamento actualizado',
       );
     }
-
-    return updatedDepartment;
   }
 
-  remove(id: number) {
-    return this.departmentsRepository.delete(id);
+  async remove(id: number) {
+    const department = await this.findOne(id);
+    return this.departmentsRepository.remove(department);
   }
 }

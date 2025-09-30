@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { Supplier } from './entities/supplier.entity';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
+import { UpdateSupplierDto } from './dto/update-supplier.dto';
 
 @Controller('api/suppliers')
 export class SuppliersController {
@@ -26,16 +28,16 @@ export class SuppliersController {
   }
 
   @Post()
-  create(@Body() supplier: Supplier): Promise<Supplier> {
-    return this.suppliersService.create(supplier);
+  create(@Body() createSupplierDto: CreateSupplierDto): Promise<Supplier> {
+    return this.suppliersService.create(createSupplierDto);
   }
 
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() supplier: Partial<Supplier>,
+    @Body() updateSupplierDto: UpdateSupplierDto,
   ): Promise<Supplier> {
-    return this.suppliersService.update(+id, supplier);
+    return this.suppliersService.update(+id, updateSupplierDto);
   }
 
   @Delete(':id')
