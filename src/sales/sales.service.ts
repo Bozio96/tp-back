@@ -47,7 +47,7 @@ export class SalesService {
         customerDni: customer.dni ?? null,
         customerAddress: customer.address ?? null,
         customerPhone: customer.phone ?? null,
-        invoiceDate: new Date(createSaleDto.invoiceDate),
+        invoiceDate: this.parseInvoiceDate(createSaleDto.invoiceDate),
         totalNet: totals.net,
         totalIva: totals.iva,
         totalDiscount: totals.discounts,
@@ -228,5 +228,37 @@ export class SalesService {
       Number.isFinite(lastNumeric) && lastNumeric >= 0 ? lastNumeric + 1 : 0;
 
     return nextNumeric.toString().padStart(8, '0');
+  }
+
+  private parseInvoiceDate(rawDate: string | Date): Date {
+    if (rawDate instanceof Date) {
+      return new Date(
+        rawDate.getFullYear(),
+        rawDate.getMonth(),
+        rawDate.getDate(),
+      );
+    }
+
+    if (typeof rawDate !== 'string' || rawDate.trim().length === 0) {
+      throw new BadRequestException('Fecha de factura inválida');
+    }
+
+    const [year, month, day] = rawDate
+      .split('-')
+      .map((value) => Number(value));
+
+    if (
+      !Number.isFinite(year) ||
+      !Number.isFinite(month) ||
+      !Number.isFinite(day) ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31
+    ) {
+      throw new BadRequestException('Fecha de factura inválida');
+    }
+
+    return new Date(year, month - 1, day);
   }
 }
