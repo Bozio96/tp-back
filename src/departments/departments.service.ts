@@ -21,7 +21,7 @@ export class DepartmentsService {
   findAll() {
     return this.departmentsRepository.find({
       where: { isDeleted: false },
-      order: { name: 'ASC' },
+      order: { id: 'ASC' },
     });
   }
 

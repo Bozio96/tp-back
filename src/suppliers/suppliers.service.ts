@@ -21,7 +21,7 @@ export class SuppliersService {
   findAll() {
     return this.suppliersRepository.find({
       where: { isDeleted: false },
-      order: { name: 'ASC' },
+      order: { id: 'ASC' },
     });
   }
 

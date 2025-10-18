@@ -21,7 +21,7 @@ export class CategoriesService {
   findAll() {
     return this.categoriesRepository.find({
       where: { isDeleted: false },
-      order: { name: 'ASC' },
+      order: { id: 'ASC' },
     });
   }
 

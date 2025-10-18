@@ -21,7 +21,7 @@ export class BrandsService {
   findAll() {
     return this.brandsRepository.find({
       where: { isDeleted: false },
-      order: { name: 'ASC' },
+      order: { id: 'ASC' },
     });
   }
 

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Client } from "src/clients/entities/client.entity";
 import { Sale } from "src/sales/entities/sale.entity";
 import { Repository } from "typeorm";
 
@@ -9,7 +10,7 @@ export class DashboardService {
  
     constructor(
     @InjectRepository(Sale) private readonly salesRepo: Repository<Sale>,
-    
+     @InjectRepository(Client) private readonly clientsRepo: Repository<Client>,
   ) {}
 
   // === 1️⃣ CARDS RESUMEN ===
@@ -23,12 +24,8 @@ export class DashboardService {
         AND YEAR(invoice_date) = YEAR(CURDATE());
     `);
 
-    // Total presupuestos emitidos
-    const presupuestos = await this.salesRepo.query(`
-      SELECT COUNT(*) AS total
-      FROM sales
-      WHERE tipo = 'presupuesto';
-    `);
+    // Total clientes registrados
+    const totalClientes = await this.clientsRepo.count();
 
     // Total de productos vendidos (cantidad)
     const productosVendidos = await this.salesRepo.query(`
@@ -40,10 +37,13 @@ export class DashboardService {
         AND YEAR(s.invoice_date) = YEAR(CURDATE());
     `);
 
+    const totalVendidoValor = Number(totalVendido?.[0]?.total ?? 0);
+    const productosVendidosValor = Number(productosVendidos?.[0]?.total ?? 0);
+
     return {
-      totalVendido: totalVendido[0].total,
-      presupuestos: presupuestos[0].total,
-      productosVendidos: productosVendidos[0].total,
+      totalVendido: totalVendidoValor,
+      clientes: totalClientes,
+      productosVendidos: productosVendidosValor,
     };
   }
 
