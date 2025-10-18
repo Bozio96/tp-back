@@ -19,11 +19,16 @@ export class BrandsService {
   ) {}
 
   findAll() {
-    return this.brandsRepository.find();
+    return this.brandsRepository.find({
+      where: { isDeleted: false },
+      order: { name: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<Brand> {
-    const brand = await this.brandsRepository.findOneBy({ id });
+    const brand = await this.brandsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!brand) {
       throw new NotFoundException(`Marca con ID ${id} no encontrada`);
     }
@@ -31,28 +36,42 @@ export class BrandsService {
   }
 
   async create(createBrandDto: CreateBrandDto): Promise<Brand> {
-    const existing = await this.brandsRepository.findOneBy({
-      name: createBrandDto.name,
+    const existing = await this.brandsRepository.findOne({
+      where: { name: createBrandDto.name },
     });
+
     if (existing) {
-      throw new ConflictException(
-        `Ya existe una marca con el nombre "${createBrandDto.name}"`,
-      );
+      if (!existing.isDeleted) {
+        throw new ConflictException(
+          `Ya existe una marca con el nombre "${createBrandDto.name}"`,
+        );
+      }
+
+      const revived = this.brandsRepository.merge(existing, {
+        isDeleted: false,
+        name: createBrandDto.name,
+      });
+      return this.brandsRepository.save(revived);
     }
 
-    const brand = this.brandsRepository.create(createBrandDto);
+    const brand = this.brandsRepository.create({
+      ...createBrandDto,
+      isDeleted: false,
+    });
     return this.brandsRepository.save(brand);
   }
 
   async update(id: number, updateBrandDto: UpdateBrandDto): Promise<Brand> {
-    const existing = await this.brandsRepository.findOneBy({ id });
+    const existing = await this.brandsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!existing) {
       throw new NotFoundException(`Marca con ID ${id} no encontrada`);
     }
 
     if (updateBrandDto.name && updateBrandDto.name !== existing.name) {
-      const duplicate = await this.brandsRepository.findOneBy({
-        name: updateBrandDto.name,
+      const duplicate = await this.brandsRepository.findOne({
+        where: { name: updateBrandDto.name, isDeleted: false },
       });
       if (duplicate) {
         throw new ConflictException(
@@ -72,7 +91,15 @@ export class BrandsService {
   }
 
   async remove(id: number) {
-    const brand = await this.findOne(id);
-    return this.brandsRepository.remove(brand);
+    const brand = await this.brandsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!brand) {
+      throw new NotFoundException(`Marca con ID ${id} no encontrada`);
+    }
+
+    brand.isDeleted = true;
+    await this.brandsRepository.save(brand);
+    return { success: true };
   }
 }

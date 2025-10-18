@@ -76,6 +76,9 @@ export class Product {
   @JoinColumn({ name: 'department_id' })
   department: Department;
 
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

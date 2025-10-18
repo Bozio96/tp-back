@@ -19,6 +19,9 @@ export class Category {
   @OneToMany(() => Product, (product) => product.category)
   products: Product[];
 
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
+  isDeleted: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

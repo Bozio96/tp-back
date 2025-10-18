@@ -9,6 +9,7 @@ import { Sale } from './entities/sale.entity';
 import { SaleDetail } from './entities/sale-detail.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { Product } from '../products/entities/product.entity';
+import { Client } from '../clients/entities/client.entity';
 
 @Injectable()
 export class SalesService {
@@ -21,38 +22,50 @@ export class SalesService {
   async create(createSaleDto: CreateSaleDto): Promise<Sale> {
     return this.dataSource.transaction(async (manager) => {
       const isQuote = createSaleDto.type === 'quote';
-      const customer = createSaleDto.customer ?? ({} as any);
       const totals = createSaleDto.totals;
+      const normalizedClientId =
+        typeof createSaleDto.clientId === 'number'
+          ? createSaleDto.clientId
+          : Number(createSaleDto.clientId);
+      const hasClient = Number.isInteger(normalizedClientId) && normalizedClientId > 0;
+      const customerType = hasClient
+        ? 'habitual'
+        : this.resolveCustomerType(createSaleDto.customer);
       const invoiceType = isQuote
         ? 'X'
         : (createSaleDto.invoiceType ?? '').trim().toUpperCase() || 'X';
+      const saleType = isQuote ? 'presupuesto' : 'venta';
       const { pointOfSale, invoiceNumber } = await this.resolveInvoiceIdentifiers(
         manager,
         createSaleDto,
-        isQuote,
+        saleType,
         invoiceType,
       );
+
+      let linkedClient: Client | null = null;
+      if (hasClient) {
+        linkedClient = await manager.findOne(Client, {
+          where: { id: normalizedClientId },
+        });
+
+        if (!linkedClient) {
+          throw new NotFoundException(`Cliente con ID ${normalizedClientId} no encontrado`);
+        }
+      }
 
       const sale = manager.create(Sale, {
         pointOfSale,
         invoiceNumber,
         invoiceType,
         paymentMethod: isQuote ? null : createSaleDto.paymentMethod,
-        type: isQuote ? 'presupuesto' : 'venta',
-        customerType: customer.type,
-        customerId: customer.id ?? null,
-        customerName: customer.name ?? null,
-        customerDocument: customer.document ?? null,
-        customerCuit: customer.cuit ?? null,
-        customerDni: customer.dni ?? null,
-        customerAddress: customer.address ?? null,
-        customerPhone: customer.phone ?? null,
+        customerType,
+        client: linkedClient,
+        type: saleType,
         invoiceDate: this.parseInvoiceDate(createSaleDto.invoiceDate),
         totalNet: totals.net,
         totalIva: totals.iva,
         totalDiscount: totals.discounts,
         totalFinal: totals.final,
-        isQuote,
       });
 
       const savedSale = await manager.save(Sale, sale);
@@ -103,16 +116,22 @@ export class SalesService {
 
       await manager.save(SaleDetail, detailEntities);
 
-      return manager.findOne(Sale, {
+      const saleWithDetails = await manager.findOne(Sale, {
         where: { id: savedSale.id },
-        relations: ['details'],
-      }) as Promise<Sale>;
+        relations: ['details', 'client'],
+      });
+
+      if (!saleWithDetails) {
+        throw new NotFoundException('Venta recien creada no encontrada');
+      }
+
+      return saleWithDetails;
     });
   }
 
-  findAll(): Promise<Sale[]> {
-    return this.salesRepository.find({
-      relations: ['details'],
+  async findAll(): Promise<Sale[]> {
+    const sales = await this.salesRepository.find({
+      relations: ['details', 'client'],
       order: {
         createdAt: 'DESC',
         details: {
@@ -120,12 +139,13 @@ export class SalesService {
         },
       },
     });
+    return sales;
   }
 
   async findOne(id: number): Promise<Sale> {
     const sale = await this.salesRepository.findOne({
       where: { id },
-      relations: ['details'],
+      relations: ['details', 'client'],
       order: {
         details: {
           lineNumber: 'ASC',
@@ -160,7 +180,7 @@ export class SalesService {
   private async resolveInvoiceIdentifiers(
     manager: EntityManager,
     dto: CreateSaleDto,
-    isQuote: boolean,
+    saleType: 'venta' | 'presupuesto',
     invoiceType: string,
   ): Promise<{ pointOfSale: string; invoiceNumber: string }> {
     const pointOfSale = this.resolvePointOfSale(dto.type, invoiceType);
@@ -172,7 +192,7 @@ export class SalesService {
     const invoiceNumber = await this.findNextInvoiceNumber(
       manager,
       pointOfSale,
-      isQuote,
+      saleType,
       invoiceType,
     );
 
@@ -187,12 +207,12 @@ export class SalesService {
       type === 'quote'
         ? 'X'
         : (invoiceType ?? '').trim().toUpperCase() || 'X';
-    const isQuote = type === 'quote';
+    const saleType = type === 'quote' ? 'presupuesto' : 'venta';
     const pointOfSale = this.resolvePointOfSale(type, normalizedInvoiceType);
     const invoiceNumber = await this.findNextInvoiceNumber(
       this.salesRepository.manager,
       pointOfSale,
-      isQuote,
+      saleType,
       normalizedInvoiceType,
     );
 
@@ -206,14 +226,14 @@ export class SalesService {
   private async findNextInvoiceNumber(
     manager: EntityManager,
     pointOfSale: string,
-    isQuote: boolean,
+    saleType: 'venta' | 'presupuesto',
     invoiceType: string,
   ): Promise<string> {
     const lastSale = await manager
       .createQueryBuilder(Sale, 'sale')
       .select('sale.invoiceNumber', 'invoiceNumber')
       .where('sale.pointOfSale = :pointOfSale', { pointOfSale })
-      .andWhere('sale.isQuote = :isQuote', { isQuote })
+      .andWhere('sale.type = :saleType', { saleType })
       .andWhere('sale.invoiceType = :invoiceType', { invoiceType })
       .orderBy('sale.invoiceNumber', 'DESC')
       .limit(1)
@@ -260,5 +280,17 @@ export class SalesService {
     }
 
     return new Date(year, month - 1, day);
+  }
+
+  private resolveCustomerType(
+    customer: CreateSaleDto['customer'] | undefined,
+  ): string {
+    if (typeof customer?.type === 'string') {
+      const trimmed = customer.type.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+    return 'habitual';
   }
 }

@@ -2,11 +2,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { SaleDetail } from './sale-detail.entity';
+import { Client } from '../../clients/entities/client.entity';
 
 @Entity('sales')
 export class Sale {
@@ -33,29 +37,15 @@ export class Sale {
   @Column({ name: 'customer_type', type: 'varchar', length: 30 })
   customerType: string;
 
-  @Column({ name: 'customer_id', type: 'varchar', length: 100, nullable: true })
-  customerId: string | null;
-
-  @Column({ name: 'customer_name', type: 'varchar', length: 255, nullable: true })
-  customerName: string | null;
-
-  @Column({ name: 'customer_document', type: 'varchar', length: 20, nullable: true })
-  customerDocument: string | null;
-
-  @Column({ name: 'customer_cuit', type: 'varchar', length: 20, nullable: true })
-  customerCuit: string | null;
-
-  @Column({ name: 'customer_dni', type: 'varchar', length: 20, nullable: true })
-  customerDni: string | null;
-
-  @Column({ name: 'customer_address', type: 'varchar', length: 255, nullable: true })
-  customerAddress: string | null;
-
-  @Column({ name: 'customer_phone', type: 'varchar', length: 50, nullable: true })
-  customerPhone: string | null;
-
   @Column({ name: 'invoice_date', type: 'date' })
   invoiceDate: Date;
+
+  @ManyToOne(() => Client, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'client_id' })
+  client?: Client | null;
+
+  @RelationId((sale: Sale) => sale.client)
+  clientId?: number | null;
 
   @Column({ name: 'total_net', type: 'decimal', precision: 12, scale: 2 })
   totalNet: number;
@@ -68,9 +58,6 @@ export class Sale {
 
   @Column({ name: 'total_final', type: 'decimal', precision: 12, scale: 2 })
   totalFinal: number;
-
-  @Column({ name: 'is_quote', type: 'boolean', default: false })
-  isQuote: boolean;
 
   @Column({ name: 'tipo', type: 'varchar', length: 20, default: 'venta' })
   type: string;
