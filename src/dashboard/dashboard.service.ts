@@ -47,7 +47,7 @@ export class DashboardService {
     };
   }
 
-  // === 2️⃣ EVOLUCIÓN MENSUAL DE VENTAS ===
+  // === 2️ EVOLUCIÓN MENSUAL DE VENTAS ===
   async getVentasMensuales() {
     return this.salesRepo.query(`
       SELECT 
@@ -61,7 +61,7 @@ export class DashboardService {
     `);
   }
 
-  // === 3️⃣ DISTRIBUCIÓN VENTAS VS PRESUPUESTOS ===
+  // === 3️ DISTRIBUCIÓN VENTAS VS PRESUPUESTOS ===
   async getDistribucion() {
     return this.salesRepo.query(`
       SELECT 
@@ -72,7 +72,7 @@ export class DashboardService {
     `);
   }
 
-  // === 4️⃣ TOP 5 PRODUCTOS MÁS VENDIDOS ===
+  // === 4️ TOP 5 PRODUCTOS MÁS VENDIDOS ===
   async getProductosTop() {
     return this.salesRepo.query(`
       SELECT 
@@ -88,7 +88,7 @@ export class DashboardService {
     `);
   }
 
-  // === 5️⃣ EVOLUCIÓN DIARIA DE VENTAS (últimos 30 días) ===
+  // === 5️ EVOLUCIÓN DIARIA DE VENTAS (últimos 30 días) ===
   async getVentasDiarias() {
     return this.salesRepo.query(`
       SELECT 
