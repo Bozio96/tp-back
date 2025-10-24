@@ -19,11 +19,16 @@ export class DepartmentsService {
   ) {}
 
   findAll() {
-    return this.departmentsRepository.find();
+    return this.departmentsRepository.find({
+      where: { isDeleted: false },
+      order: { id: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<Department> {
-    const department = await this.departmentsRepository.findOneBy({ id });
+    const department = await this.departmentsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!department) {
       throw new NotFoundException(`Departamento con ID ${id} no encontrado`);
     }
@@ -31,16 +36,28 @@ export class DepartmentsService {
   }
 
   async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
-    const existing = await this.departmentsRepository.findOneBy({
-      name: createDepartmentDto.name,
+    const existing = await this.departmentsRepository.findOne({
+      where: { name: createDepartmentDto.name },
     });
+
     if (existing) {
-      throw new ConflictException(
-        `Ya existe un departamento con el nombre "${createDepartmentDto.name}"`,
-      );
+      if (!existing.isDeleted) {
+        throw new ConflictException(
+          `Ya existe un departamento con el nombre "${createDepartmentDto.name}"`,
+        );
+      }
+
+      const revived = this.departmentsRepository.merge(existing, {
+        isDeleted: false,
+        name: createDepartmentDto.name,
+      });
+      return this.departmentsRepository.save(revived);
     }
 
-    const department = this.departmentsRepository.create(createDepartmentDto);
+    const department = this.departmentsRepository.create({
+      ...createDepartmentDto,
+      isDeleted: false,
+    });
     return this.departmentsRepository.save(department);
   }
 
@@ -48,14 +65,16 @@ export class DepartmentsService {
     id: number,
     updateDepartmentDto: UpdateDepartmentDto,
   ): Promise<Department> {
-    const existing = await this.departmentsRepository.findOneBy({ id });
+    const existing = await this.departmentsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!existing) {
       throw new NotFoundException(`Departamento con ID ${id} no encontrado`);
     }
 
     if (updateDepartmentDto.name && updateDepartmentDto.name !== existing.name) {
-      const duplicate = await this.departmentsRepository.findOneBy({
-        name: updateDepartmentDto.name,
+      const duplicate = await this.departmentsRepository.findOne({
+        where: { name: updateDepartmentDto.name, isDeleted: false },
       });
       if (duplicate) {
         throw new ConflictException(
@@ -78,7 +97,15 @@ export class DepartmentsService {
   }
 
   async remove(id: number) {
-    const department = await this.findOne(id);
-    return this.departmentsRepository.remove(department);
+    const department = await this.departmentsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!department) {
+      throw new NotFoundException(`Departamento con ID ${id} no encontrado`);
+    }
+
+    department.isDeleted = true;
+    await this.departmentsRepository.save(department);
+    return { success: true };
   }
 }

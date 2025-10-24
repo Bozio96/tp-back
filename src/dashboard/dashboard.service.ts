@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Client } from "src/clients/entities/client.entity";
 import { Sale } from "src/sales/entities/sale.entity";
 import { Repository } from "typeorm";
 
@@ -9,7 +10,7 @@ export class DashboardService {
  
     constructor(
     @InjectRepository(Sale) private readonly salesRepo: Repository<Sale>,
-    
+     @InjectRepository(Client) private readonly clientsRepo: Repository<Client>,
   ) {}
 
   // === 1️⃣ CARDS RESUMEN ===
@@ -19,18 +20,12 @@ export class DashboardService {
       SELECT IFNULL(SUM(total_final), 0) AS total
       FROM sales
       WHERE tipo = 'venta'
-        AND is_quote = 0
         AND MONTH(invoice_date) = MONTH(CURDATE())
         AND YEAR(invoice_date) = YEAR(CURDATE());
     `);
 
-    // Total presupuestos emitidos
-    const presupuestos = await this.salesRepo.query(`
-      SELECT COUNT(*) AS total
-      FROM sales
-      WHERE tipo = 'presupuesto'
-        OR is_quote = 1;
-    `);
+    // Total clientes registrados
+    const totalClientes = await this.clientsRepo.count();
 
     // Total de productos vendidos (cantidad)
     const productosVendidos = await this.salesRepo.query(`
@@ -38,15 +33,17 @@ export class DashboardService {
       FROM sale_details sd
       JOIN sales s ON s.id = sd.sale_id
       WHERE s.tipo = 'venta'
-        AND s.is_quote = 0
         AND MONTH(s.invoice_date) = MONTH(CURDATE())
         AND YEAR(s.invoice_date) = YEAR(CURDATE());
     `);
 
+    const totalVendidoValor = Number(totalVendido?.[0]?.total ?? 0);
+    const productosVendidosValor = Number(productosVendidos?.[0]?.total ?? 0);
+
     return {
-      totalVendido: totalVendido[0].total,
-      presupuestos: presupuestos[0].total,
-      productosVendidos: productosVendidos[0].total,
+      totalVendido: totalVendidoValor,
+      clientes: totalClientes,
+      productosVendidos: productosVendidosValor,
     };
   }
 
@@ -58,7 +55,6 @@ export class DashboardService {
         IFNULL(SUM(total_final), 0) AS total_ventas
       FROM sales
       WHERE tipo = 'venta'
-        AND is_quote = 0
         AND YEAR(invoice_date) = YEAR(CURDATE())
       GROUP BY MONTH(invoice_date)
       ORDER BY mes;
@@ -86,7 +82,6 @@ export class DashboardService {
       JOIN products p ON p.id = sd.product_id
       JOIN sales s ON s.id = sd.sale_id
       WHERE s.tipo = 'venta'
-        AND s.is_quote = 0
       GROUP BY p.name
       ORDER BY cantidad DESC
       LIMIT 5;
@@ -101,7 +96,6 @@ export class DashboardService {
         IFNULL(SUM(total_final), 0) AS total_dia
       FROM sales
       WHERE tipo = 'venta'
-        AND is_quote = 0
         AND invoice_date >= CURDATE() - INTERVAL 30 DAY
       GROUP BY DATE(invoice_date)
       ORDER BY fecha;

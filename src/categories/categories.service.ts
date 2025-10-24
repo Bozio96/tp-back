@@ -19,11 +19,16 @@ export class CategoriesService {
   ) {}
 
   findAll() {
-    return this.categoriesRepository.find();
+    return this.categoriesRepository.find({
+      where: { isDeleted: false },
+      order: { id: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<Category> {
-    const category = await this.categoriesRepository.findOneBy({ id });
+    const category = await this.categoriesRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!category) {
       throw new NotFoundException(`Categoria con ID ${id} no encontrada`);
     }
@@ -31,16 +36,28 @@ export class CategoriesService {
   }
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const existing = await this.categoriesRepository.findOneBy({
-      name: createCategoryDto.name,
+    const existing = await this.categoriesRepository.findOne({
+      where: { name: createCategoryDto.name },
     });
+
     if (existing) {
-      throw new ConflictException(
-        `Ya existe una Categoria con el nombre "${createCategoryDto.name}"`,
-      );
+      if (!existing.isDeleted) {
+        throw new ConflictException(
+          `Ya existe una Categoria con el nombre "${createCategoryDto.name}"`,
+        );
+      }
+
+      const revived = this.categoriesRepository.merge(existing, {
+        isDeleted: false,
+        name: createCategoryDto.name,
+      });
+      return this.categoriesRepository.save(revived);
     }
 
-    const category = this.categoriesRepository.create(createCategoryDto);
+    const category = this.categoriesRepository.create({
+      ...createCategoryDto,
+      isDeleted: false,
+    });
     return this.categoriesRepository.save(category);
   }
 
@@ -48,14 +65,16 @@ export class CategoriesService {
     id: number,
     updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
-    const existing = await this.categoriesRepository.findOneBy({ id });
+    const existing = await this.categoriesRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!existing) {
       throw new NotFoundException(`Categoria con ID ${id} no encontrada`);
     }
 
     if (updateCategoryDto.name && updateCategoryDto.name !== existing.name) {
-      const duplicate = await this.categoriesRepository.findOneBy({
-        name: updateCategoryDto.name,
+      const duplicate = await this.categoriesRepository.findOne({
+        where: { name: updateCategoryDto.name, isDeleted: false },
       });
       if (duplicate) {
         throw new ConflictException(
@@ -78,7 +97,15 @@ export class CategoriesService {
   }
 
   async remove(id: number) {
-    const category = await this.findOne(id);
-    return this.categoriesRepository.remove(category);
+    const category = await this.categoriesRepository.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!category) {
+      throw new NotFoundException(`Categoria con ID ${id} no encontrada`);
+    }
+
+    category.isDeleted = true;
+    await this.categoriesRepository.save(category);
+    return { success: true };
   }
 }

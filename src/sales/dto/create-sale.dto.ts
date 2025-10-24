@@ -2,14 +2,17 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsBoolean,
+  IsDateString,
   IsIn,
+  IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Matches,
+  Min,
   ValidateNested,
 } from 'class-validator';
-import { IsDateString, IsNumber } from 'class-validator';
-import { Matches } from 'class-validator';
 import { CreateSaleItemDto } from './create-sale-item.dto';
 
 class SaleCustomerDto {
@@ -88,6 +91,12 @@ export class CreateSaleDto {
   @IsString()
   @IsNotEmpty()
   paymentMethod: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  clientId?: number | null;
 
   @ValidateNested()
   @Type(() => SaleCustomerDto)

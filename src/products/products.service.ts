@@ -25,13 +25,14 @@ export class ProductsService {
 
   findAll() {
     return this.productsRepository.find({
+      where: { isDeleted: false },
       relations: ['brand', 'category', 'supplier', 'department'],
     });
   }
 
   async findOne(id: number): Promise<Product> {
     const product = await this.productsRepository.findOne({
-      where: { id },
+      where: { id, isDeleted: false },
       relations: ['brand', 'category', 'supplier', 'department'],
     });
     if (!product) {
@@ -54,7 +55,8 @@ export class ProductsService {
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.supplier', 'supplier')
-      .leftJoinAndSelect('product.department', 'department');
+      .leftJoinAndSelect('product.department', 'department')
+      .andWhere('product.isDeleted = :isDeleted', { isDeleted: false });
 
     if (search) {
       query.andWhere('product.name LIKE :search', { search: `%${search}%` });
@@ -97,7 +99,7 @@ export class ProductsService {
 
   async update(id: number, updateProductDto: UpdateProductDto): Promise<Product> {
     const existing = await this.productsRepository.findOne({
-      where: { id },
+      where: { id, isDeleted: false },
       relations: ['brand', 'category', 'supplier', 'department'],
     });
     if (!existing) {
@@ -123,7 +125,7 @@ export class ProductsService {
     );
 
     const updatedProduct = await this.productsRepository.findOne({
-      where: { id },
+      where: { id, isDeleted: false },
       relations: ['brand', 'category', 'supplier', 'department'],
     });
     if (!updatedProduct) {
@@ -148,11 +150,16 @@ export class ProductsService {
   }
 
   async remove(id: number): Promise<boolean> {
-    const product = await this.productsRepository.findOneBy({ id });
+    const product = await this.productsRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!product) {
       throw new NotFoundException('Producto no encontrado');
     }
-    await this.productsRepository.delete(id);
+
+    product.isDeleted = true;
+
+    await this.productsRepository.save(product);
     return true;
   }
 
@@ -162,7 +169,7 @@ export class ProductsService {
     const ids = updates.map((u) => u.id);
 
     const products = await this.productsRepository.find({
-      where: { id: In(ids) },
+      where: { id: In(ids), isDeleted: false },
     });
 
     if (products.length === 0) {

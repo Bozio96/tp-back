@@ -19,11 +19,16 @@ export class SuppliersService {
   ) {}
 
   findAll() {
-    return this.suppliersRepository.find();
+    return this.suppliersRepository.find({
+      where: { isDeleted: false },
+      order: { id: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<Supplier> {
-    const supplier = await this.suppliersRepository.findOneBy({ id });
+    const supplier = await this.suppliersRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!supplier) {
       throw new NotFoundException(`Proveedor con ID ${id} no encontrado`);
     }
@@ -31,16 +36,28 @@ export class SuppliersService {
   }
 
   async create(createSupplierDto: CreateSupplierDto): Promise<Supplier> {
-    const existing = await this.suppliersRepository.findOneBy({
-      name: createSupplierDto.name,
+    const existing = await this.suppliersRepository.findOne({
+      where: { name: createSupplierDto.name },
     });
+
     if (existing) {
-      throw new ConflictException(
-        `Ya existe un proveedor con el nombre "${createSupplierDto.name}"`,
-      );
+      if (!existing.isDeleted) {
+        throw new ConflictException(
+          `Ya existe un proveedor con el nombre "${createSupplierDto.name}"`,
+        );
+      }
+
+      const revived = this.suppliersRepository.merge(existing, {
+        isDeleted: false,
+        name: createSupplierDto.name,
+      });
+      return this.suppliersRepository.save(revived);
     }
 
-    const supplier = this.suppliersRepository.create(createSupplierDto);
+    const supplier = this.suppliersRepository.create({
+      ...createSupplierDto,
+      isDeleted: false,
+    });
     return this.suppliersRepository.save(supplier);
   }
 
@@ -48,14 +65,16 @@ export class SuppliersService {
     id: number,
     updateSupplierDto: UpdateSupplierDto,
   ): Promise<Supplier> {
-    const existing = await this.suppliersRepository.findOneBy({ id });
+    const existing = await this.suppliersRepository.findOne({
+      where: { id, isDeleted: false },
+    });
     if (!existing) {
       throw new NotFoundException(`Proveedor con ID ${id} no encontrado`);
     }
 
     if (updateSupplierDto.name && updateSupplierDto.name !== existing.name) {
-      const duplicate = await this.suppliersRepository.findOneBy({
-        name: updateSupplierDto.name,
+      const duplicate = await this.suppliersRepository.findOne({
+        where: { name: updateSupplierDto.name, isDeleted: false },
       });
       if (duplicate) {
         throw new ConflictException(
@@ -78,7 +97,15 @@ export class SuppliersService {
   }
 
   async remove(id: number) {
-    const supplier = await this.findOne(id);
-    return this.suppliersRepository.remove(supplier);
+    const supplier = await this.suppliersRepository.findOne({
+      where: { id, isDeleted: false },
+    });
+    if (!supplier) {
+      throw new NotFoundException(`Proveedor con ID ${id} no encontrado`);
+    }
+
+    supplier.isDeleted = true;
+    await this.suppliersRepository.save(supplier);
+    return { success: true };
   }
 }
