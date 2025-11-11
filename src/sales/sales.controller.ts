@@ -7,25 +7,31 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { SalesService } from './sales.service';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { Sale } from './entities/sale.entity';
+import { SalesService } from './sales.service';
 
+@ApiTags('sales')
+@ApiBearerAuth()
 @Controller('api/sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Registrar una venta o presupuesto' })
   create(@Body() createSaleDto: CreateSaleDto): Promise<Sale> {
     return this.salesService.create(createSaleDto);
   }
 
   @Get()
+  @ApiOperation({ summary: 'Listar ventas registradas' })
   findAll(): Promise<Sale[]> {
     return this.salesService.findAll();
   }
 
   @Get('next-number')
+  @ApiOperation({ summary: 'Obtener la proxima numeracion para la factura' })
   getNextInvoiceNumber(
     @Query('type') type: string = 'sale',
     @Query('invoiceType') invoiceType?: string,
@@ -46,6 +52,7 @@ export class SalesController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener una venta por id' })
   findOne(@Param('id') id: string): Promise<Sale> {
     return this.salesService.findOne(+id);
   }

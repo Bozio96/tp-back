@@ -1,6 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 
+@ApiTags('dashboard')
+@ApiBearerAuth()
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
@@ -10,6 +13,7 @@ export class DashboardController {
    * Endpoint: GET /dashboard/cards
    */
   @Get('cards')
+  @ApiOperation({ summary: 'Obtener metricas generales del dashboard' })
   async getCards() {
     return await this.dashboardService.getCards();
   }
@@ -19,6 +23,7 @@ export class DashboardController {
    * Endpoint: GET /dashboard/ventas-mensuales
    */
   @Get('ventas-mensuales')
+  @ApiOperation({ summary: 'Obtener ventas agrupadas por mes' })
   async getVentasMensuales() {
     return await this.dashboardService.getVentasMensuales();
   }
@@ -28,6 +33,7 @@ export class DashboardController {
    * Endpoint: GET /dashboard/distribucion
    */
   @Get('distribucion')
+  @ApiOperation({ summary: 'Obtener distribucion de operaciones' })
   async getDistribucion() {
     return await this.dashboardService.getDistribucion();
   }
@@ -37,6 +43,7 @@ export class DashboardController {
    * Endpoint: GET /dashboard/productos-top
    */
   @Get('productos-top')
+  @ApiOperation({ summary: 'Consultar los productos mas vendidos' })
   async getProductosTop() {
     return await this.dashboardService.getProductosTop();
   }
@@ -46,6 +53,7 @@ export class DashboardController {
    * Endpoint: GET /dashboard/ventas-diarias
    */
   @Get('ventas-diarias')
+  @ApiOperation({ summary: 'Obtener evolucion diaria de ventas' })
   async getVentasDiarias() {
     return await this.dashboardService.getVentasDiarias();
   }
