@@ -1,98 +1,134 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TP Back - API NestJS para Gestion Comercial
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend construido con NestJS 11 + TypeORM sobre MySQL. Expone endpoints REST para autenticacion con JWT, administracion de usuarios, catastro de productos, clientes, ventas y dashboards que consumen las metricas mostradas en el front (`tp-front`).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tabla de contenido
+- [Descripcion general](#descripcion-general)
+- [Arquitectura y tecnologias](#arquitectura-y-tecnologias)
+- [Prerrequisitos](#prerrequisitos)
+- [Instalacion y primer arranque](#instalacion-y-primer-arranque)
+- [Variables de entorno](#variables-de-entorno)
+- [Modulos y endpoints destacados](#modulos-y-endpoints-destacados)
+- [Base de datos y ORM](#base-de-datos-y-orm)
+- [Autenticacion y seguridad](#autenticacion-y-seguridad)
+- [Testing y calidad](#testing-y-calidad)
+- [Depuracion y herramientas utiles](#depuracion-y-herramientas-utiles)
+- [Problemas frecuentes](#problemas-frecuentes)
+- [Recursos adicionales](#recursos-adicionales)
 
-## Description
+## Descripcion general
+El proyecto implementa todos los recursos necesarios para alimentar el panel comercial del frontend: manejo de catastro (productos, marcas, categorias, proveedores, departamentos), clientes y ventas, ademas del dashboard que agrega estadisticas de facturacion y presupuestos. Cada modulo se encuentra aislado y documentado via Swagger en `/docs`, con un guardia JWT global que protege todos los endpoints salvo los de autenticacion.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Arquitectura y tecnologias
+- **Framework**: NestJS 11 con programacion modular.
+- **Runtime**: Node.js 20+. Usa ES2022 y decoradores.
+- **Base de datos**: MySQL 8 (o compatible) mediante TypeORM.
+- **Validacion**: `class-validator` + `class-transformer` con `ValidationPipe` global (whitelist, transformacion y bloqueo de propiedades no permitidas).
+- **Autenticacion**: JWT firmado con `JWT_SECRET`, implementado en `AuthModule` y un guardia global (`JwtAuthGuard`).
+- **Documentacion**: Swagger (`@nestjs/swagger`) expuesto en `http://localhost:3000/docs` con soporte para bearer token persistente.
+- **Observabilidad**: Logs nativos de Nest, posibilidad de habilitar `TYPEORM_LOGGING` para inspeccionar queries.
 
-## Project setup
+## Prerrequisitos
+- Node.js 20.11+ y npm 10+ (usa `node -v` / `npm -v` para verificar).
+- Servidor MySQL accesible con privilegios de creacion/alteracion.
+- Variables de entorno configuradas (ver seccion siguiente).
+- Opcional: Postman o Thunder Client para probar endpoints, y Docker si prefieres orquestar MySQL localmente.
 
-```bash
-$ npm install
+## Instalacion y primer arranque
+1. Ubicate en la carpeta del backend e instala dependencias:
+   ```bash
+   cd Tp_DSW/tp-back
+   npm i
+   ```
+2. Copia el archivo de entorno base y completa los valores reales:
+   ```bash
+   cp .env.example .env
+   # Edita .env con las credenciales de la base y un JWT_SECRET seguro
+   ```
+3. Asegurate de que la base exista (o que el usuario tenga permisos para crearla). Con `TYPEORM_SYNC=true` se generan/actualizan tablas automaticamente en desarrollo.
+4. Levanta el servidor:
+   ```bash
+   npm run start:dev
+   ```
+   - API: `http://localhost:3000`
+   - Swagger UI: `http://localhost:3000/docs` (habilita "Authorize" y pega tu token JWT).
+5. Mantén `tp-front` apuntando a la misma URL (por defecto ya consume `http://localhost:3000`). El CORS viene preconfigurado para `http://localhost:4200` en `main.ts`.
+
+## Variables de entorno
+Archivo `.env` recomendado (todos los valores son obligatorios salvo que se indique lo contrario):
+```env
+NODE_ENV=development
+PORT=3000
+
+# Base de datos MySQL
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASS=secret
+DB_NAME=tp_dsw
+
+# TypeORM
+TYPEORM_SYNC=true      # true en desarrollo, false en produccion
+TYPEORM_LOGGING=false  # true para depurar queries
+
+# Auth
+JWT_SECRET=una_clave_larga_y_unica
+JWT_EXPIRES_IN=1d      # opcional, si quieres personalizarlo en AuthModule
 ```
+> Cuando despliegues en produccion desactiva `TYPEORM_SYNC` y maneja los cambios mediante migraciones para evitar que TypeORM altere datos automaticamente.
 
-## Compile and run the project
+## Modulos y endpoints destacados
+| Modulo        | Ruta base          | Endpoints relevantes (resumen)                                               |
+|---------------|--------------------|-------------------------------------------------------------------------------|
+| Auth          | `/auth`            | `POST /login`, `POST /register` (si se habilita). Devuelve JWT y perfil.     |
+| Users         | `/users`           | CRUD de usuarios, asociado a roles (`admin`, `user`).                         |
+| Products      | `/api/products`    | CRUD completo, filtros por marca/categoria/etc., `PATCH /bulk-update`.       |
+| Brands        | `/api/brands`      | Catalogo de marcas para el front.                                            |
+| Categories    | `/api/categories`  | Catalogo de categorias.                                                      |
+| Suppliers     | `/api/suppliers`   | Proveedores asociados a productos.                                           |
+| Departments   | `/api/departments` | Catalogo para agrupar productos.                                             |
+| Clients       | `/api/clients`     | CRUD, usado para buscador con auto-completado en el front.                   |
+| Sales         | `/api/sales`       | Crea ventas/presupuestos, calcula totales, asigna numeracion correlativa.    |
+| Dashboard     | `/dashboard`       | `GET /cards`, `/ventas-mensuales`, `/distribucion`, `/ventas-diarias`, `/productos-top`. |
 
-```bash
-# development
-$ npm run start
+Cada controlador utiliza DTOs con validacion estricta. Revisa `src/<modulo>/dto` para conocer los payloads exactos o ingresa a Swagger para los esquemas generados automaticamente.
 
-# watch mode
-$ npm run start:dev
+## Base de datos y ORM
+- Configurada en `src/database/data-source.ts` usando `DataSource` de TypeORM y `ConfigModule` para leer `.env`.
+- `entities: [__dirname + '/../**/*.entity{.ts,.js}']` carga todas las entidades sin registrarlas manualmente.
+- `timezone: 'Z'` fuerza UTC para evitar desfasajes en reportes de ventas.
+- `synchronize` esta habilitado por defecto para desarrollo; recuerda desactivarlo en entornos controlados y aplicar migraciones.
+- Puedes habilitar `logging` seteando `TYPEORM_LOGGING=true` si necesitas auditar queries complejas.
 
-# production mode
-$ npm run start:prod
-```
+## Autenticacion y seguridad
+- JWT firmado con `JWT_SECRET`, emitido en `AuthService` y validado por `JwtStrategy`.
+- `JwtAuthGuard` se registra como guardia global (`APP_GUARD`) en `AppModule`, por lo que cualquier ruta requiere token salvo las del modulo de Auth.
+- Los DTOs usan validaciones de tipos y longitud, lo cual combinado con `ValidationPipe` evita payloads maliciosos.
+- CORS abierto para `http://localhost:4200` y con `credentials: true`. Ajusta `origin` segun tu dominio al desplegar.
+- Swagger incluye `addBearerAuth()` de modo que desde `/docs` puedes probar endpoints autenticados.
 
-## Run tests
+## Testing y calidad
+- **Unit tests**: `npm test` ejecuta Jest sobre los specs (`*.spec.ts`).
+- **End-to-end**: `npm run test:e2e` levanta la app con el entorno de pruebas y dispara los escenarios definidos en `test/`.
 
-```bash
-# unit tests
-$ npm run test
+## Depuracion y herramientas utiles
+- `npm run start:debug` inicia la app con el inspector de Node abierto (puerto 9229) para adjuntar VS Code o Chrome DevTools.
+- `npm run start --watch` recompila en caliente pero sin el auto-reload avanzado de `start:dev`; util para despliegues locales con PM2 o Nodemon personalizado.
+- Habilita `TYPEORM_LOGGING=true` cuando necesites revisar SQL exacto (se mostrara en consola). Recuerda revertirlo para no saturar logs en produccion.
+- Usa Swagger (`/docs`) para verificar rapidamente los payloads y probar cambios en DTOs sin necesidad de Postman.
 
-# e2e tests
-$ npm run test:e2e
+## Problemas frecuentes
+- **Conexiones MySQL fallan**: confirma host/puerto, privilegios y que la IP de tu maquina este habilitada si la base esta en la nube. Repite `npm run start:dev` tras ajustar `.env`.
+- **`ER_NOT_SUPPORTED_AUTH_MODE`**: algunos servidores MySQL usan `caching_sha2_password`. Cambia el usuario a `mysql_native_password` o actualiza el driver.
+- **`Forbidden resource` o 401**: el token expiro o faltan encabezados `Authorization: Bearer`. Vuelve a loguearte en `/auth/login`.
+- **Swagger sin datos**: recuerda iniciar la app primero; `/docs` genera el esquema al arrancar. Si agregaste nuevos DTOs pero no los ves, reinicia el servidor.
+- **Campos desconocidos en DTO**: el `ValidationPipe` esta en modo `forbidNonWhitelisted`, por lo que cualquier propiedad extra provoca 400. Ajusta el payload en el front o edita el DTO.
 
-# test coverage
-$ npm run test:cov
-```
+## Recursos adicionales
+- [Documentacion oficial de NestJS](https://docs.nestjs.com/)
+- [Referencia de TypeORM](https://typeorm.io/)
+- [Swagger para NestJS](https://docs.nestjs.com/openapi/introduction)
+- [Jest](https://jestjs.io/) para pruebas unitarias
+- [Guia de seguridad NestJS](https://docs.nestjs.com/security/authentication)
 
-## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
