@@ -27,7 +27,10 @@ async function bootstrap() {
     }),
   );
   app.enableCors({
-    origin: 'http://localhost:4200',
+    origin: [
+      'http://localhost:4200',
+      'https://tp-front-three.vercel.app',
+    ],
     credentials: true,
   });
   const host = process.env.HOST || '0.0.0.0';
