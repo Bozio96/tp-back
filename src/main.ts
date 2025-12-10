@@ -30,7 +30,8 @@ async function bootstrap() {
     origin: 'http://localhost:4200',
     credentials: true,
   });
-  await app.listen(port);
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

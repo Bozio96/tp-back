@@ -7,6 +7,18 @@ const toNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
+const toBoolean = (value: string | undefined, fallback: boolean): boolean => {
+  if (value === undefined) return fallback;
+  const normalized = value.trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+};
+
+const sslEnabled = toBoolean(process.env.DB_SSL, false);
+const sslRejectUnauthorized = toBoolean(
+  process.env.DB_SSL_REJECT_UNAUTHORIZED,
+  false,
+);
+
 export const AppDataSource = new DataSource({
   type: 'mysql',
   host: process.env.DB_HOST,
@@ -18,5 +30,9 @@ export const AppDataSource = new DataSource({
   synchronize: (process.env.TYPEORM_SYNC ?? 'true') === 'true', // Solo en desarrollo
   // logging: (process.env.TYPEORM_LOGGING ?? 'false') === 'true',
   timezone: 'Z',
+  ssl: sslEnabled
+    ? {
+        rejectUnauthorized: sslRejectUnauthorized,
+      }
+    : undefined,
 });
-
